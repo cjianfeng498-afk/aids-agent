@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>防艾特工 · 红丝带行动</title>
+<style>
+  :root{
+    --bg:#070D1B; --bg2:#0E1830; --card:rgba(20,32,58,.82);
+    --cyan:#2FE6D6; --red:#FF4D5E; --green:#37E09B; --orange:#FFB454; --purple:#9D7BFF;
+    --text:#E8F1FF; --muted:#8AA0C4; --line:rgba(47,230,214,.28);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Source Han Sans SC",sans-serif;
+    color:var(--text);background:var(--bg);
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  .mono{font-family:ui-monospace,Consolas,"Courier New",monospace;}
+
+  .bg-fx{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(circle at 18% 12%,rgba(47,230,214,.16),transparent 42%),
+      radial-gradient(circle at 85% 82%,rgba(255,77,94,.18),transparent 46%),
+      linear-gradient(160deg,#0A1428 0%,#070D1B 55%,#0A1020 100%);}
+  .bg-fx::before{content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(47,230,214,.06) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(47,230,214,.06) 1px,transparent 1px);
+    background-size:34px 34px;mask-image:radial-gradient(circle at 50% 40%,#000 60%,transparent 100%);}
+  .bg-fx::after{content:"";position:absolute;left:0;right:0;top:0;height:100%;
+    background:repeating-linear-gradient(to bottom,rgba(255,255,255,.025) 0 2px,transparent 2px 6px);}
+
+  .stage{position:relative;z-index:1;width:100%;max-width:480px;height:100%;margin:0 auto;
+    overflow:hidden;box-shadow:0 0 50px rgba(0,0,0,.5);}
+
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;
+    opacity:0;transform:translateX(28px);pointer-events:none;
+    transition:opacity .45s ease,transform .45s ease;}
+  .screen.active{opacity:1;transform:translateX(0);pointer-events:auto;}
+
+  .btn{appearance:none;border:none;cursor:pointer;font-family:inherit;font-weight:800;
+    border-radius:14px;padding:15px 20px;font-size:17px;color:#04222D;
+    background:linear-gradient(135deg,var(--cyan),#16B8C8);
+    box-shadow:0 0 22px rgba(47,230,214,.45),inset 0 1px 0 rgba(255,255,255,.4);
+    transition:transform .12s,box-shadow .2s;letter-spacing:1px;}
+  .btn:active{transform:scale(.96);}
+  .btn.red{color:#2A060B;background:linear-gradient(135deg,#FF6B78,var(--red));
+    box-shadow:0 0 22px rgba(255,77,94,.45),inset 0 1px 0 rgba(255,255,255,.35);}
+  .btn.ghost{color:var(--cyan);background:rgba(47,230,214,.08);
+    border:1px solid var(--line);box-shadow:none;}
+  .btn:disabled{opacity:.45;box-shadow:none;}
+
+  #cover{padding:0;}
+  #cover .cimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  #cover .cshade{position:absolute;inset:0;
+    background:linear-gradient(to bottom,rgba(7,13,27,.55) 0%,rgba(7,13,27,.25) 40%,rgba(7,13,27,.92) 100%);}
+  #cover .cbox{position:relative;z-index:2;margin-top:auto;padding:0 26px calc(34px + env(safe-area-inset-bottom));}
+  .tagline{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;letter-spacing:2px;
+    color:var(--cyan);border:1px solid var(--line);border-radius:999px;padding:6px 13px;
+    background:rgba(7,13,27,.5);}
+  .tagline .dot{width:7px;height:7px;border-radius:50%;background:var(--red);
+    box-shadow:0 0 10px var(--red);animation:blink 1.2s infinite;}
+  @keyframes blink{50%{opacity:.3;}}
+  #cover h1{font-size:38px;font-weight:900;line-height:1.18;margin:14px 0 6px;
+    text-shadow:0 0 26px rgba(255,77,94,.55);}
+  #cover h1 .hl{color:var(--cyan);text-shadow:0 0 26px rgba(47,230,214,.6);}
+  #cover .sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:22px;}
+
+  .pad{padding:26px 22px;flex:1;overflow-y:auto;}
+  .pad::-webkit-scrollbar{display:none;}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+  .chip{font-size:12px;font-weight:700;letter-spacing:1px;color:var(--cyan);
+    border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:rgba(47,230,214,.07);}
+  .h2{font-size:24px;font-weight:900;margin-bottom:12px;}
+  .brief-card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px 16px 14px;margin-bottom:14px;backdrop-filter:blur(6px);}
+  .brief-card p{font-size:14.5px;line-height:1.75;color:#C7D6F0;}
+  .brief-card .lead{color:var(--text);}
+  .rules{display:flex;gap:10px;margin-bottom:16px;}
+  .rule{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:13px 10px;text-align:center;}
+  .rule .ic{font-size:24px;}
+  .rule .t{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .rule .t b{color:var(--text);}
+  .mission-list{counter-reset:m;margin-bottom:18px;}
+  .mission{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px dashed rgba(138,160,196,.2);}
+  .mission .n{width:26px;height:26px;flex:0 0 auto;border-radius:8px;font-size:13px;font-weight:900;
+    display:flex;align-items:center;justify-content:center;color:#04222D;background:var(--cyan);}
+  .mission .nm{font-size:14.5px;font-weight:700;}
+  .mission .nm small{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px;}
+
+  #game{background:transparent;}
+  .hud{padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+    border-bottom:1px solid rgba(138,160,196,.16);background:rgba(7,13,27,.7);backdrop-filter:blur(8px);}
+  .hud .lv{font-size:13px;font-weight:800;letter-spacing:1px;}
+  .hud .lv small{display:block;font-size:10.5px;color:var(--muted);font-weight:400;letter-spacing:0;}
+  .hud .right{display:flex;align-items:center;gap:12px;}
+  .hud .lives{font-size:15px;letter-spacing:1px;}
+  .hud .score{font-size:14px;font-weight:800;color:var(--cyan);}
+  .hud .score small{color:var(--muted);font-weight:400;}
+  .hud-bar{height:3px;background:rgba(138,160,196,.18);}
+  .hud-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));
+    box-shadow:0 0 10px var(--cyan);transition:width .4s;}
+
+  .level-body{flex:1;overflow-y:auto;padding:20px 20px 26px;}
+  .level-body::-webkit-scrollbar{display:none;}
+  .level-title{font-size:20px;font-weight:900;margin-bottom:6px;}
+  .level-desc{font-size:13.5px;color:var(--muted);line-height:1.65;margin-bottom:16px;}
+  .scene{border-radius:14px;padding:14px 15px;margin-bottom:16px;font-size:14px;line-height:1.7;
+    background:linear-gradient(135deg,rgba(157,123,255,.14),rgba(47,230,214,.08));
+    border:1px solid rgba(157,123,255,.32);color:#DCE6FF;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
+    margin-bottom:14px;}
+  .qcard .q{font-size:16px;font-weight:800;line-height:1.6;margin-bottom:14px;}
+  .qcard .q .qn{color:var(--cyan);margin-right:7px;}
+  .opts{display:flex;flex-direction:column;gap:10px;}
+  .opt{appearance:none;text-align:left;cursor:pointer;font-family:inherit;font-size:14.5px;
+    line-height:1.55;color:var(--text);padding:13px 14px;border-radius:12px;
+    background:rgba(13,24,48,.8);border:1px solid rgba(138,160,196,.25);transition:all .15s;}
+  .opt:active{transform:scale(.98);}
+  .opt .key{display:inline-flex;width:23px;height:23px;border-radius:7px;margin-right:9px;
+    align-items:center;justify-content:center;font-size:12.5px;font-weight:900;
+    background:rgba(47,230,214,.15);color:var(--cyan);}
+  .opt.correct{border-color:var(--green);background:rgba(55,224,155,.14);
+    box-shadow:0 0 16px rgba(55,224,155,.3);}
+  .opt.correct .key{background:var(--green);color:#06281C;}
+  .opt.wrong{border-color:var(--red);background:rgba(255,77,94,.14);
+    box-shadow:0 0 16px rgba(255,77,94,.3);}
+  .opt.wrong .key{background:var(--red);color:#2A060B;}
+  .opt.dim{opacity:.5;}
+
+  .dual{display:flex;gap:12px;}
+  .dual .opt{flex:1;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:18px 10px;font-weight:800;font-size:15px;}
+  .dual .opt .big{font-size:26px;margin-bottom:7px;}
+
+  .feedback{border-radius:14px;padding:14px 15px;margin-top:4px;display:none;
+    animation:pop .3s ease;}
+  .feedback.show{display:block;}
+  @keyframes pop{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .feedback.ok{background:rgba(55,224,155,.12);border:1px solid rgba(55,224,155,.45);}
+  .feedback.no{background:rgba(255,77,94,.12);border:1px solid rgba(255,77,94,.45);}
+  .feedback .ft{font-size:15px;font-weight:900;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .feedback.ok .ft{color:var(--green);}
+  .feedback.no .ft{color:var(--red);}
+  .feedback .fx{font-size:13.5px;line-height:1.7;color:#C7D6F0;}
+  .feedback .fx b{color:var(--orange);}
+  .next-wrap{margin-top:14px;}
+  .next-wrap .btn{width:100%;}
+
+  .order-picked{min-height:54px;border:1.5px dashed rgba(47,230,214,.45);border-radius:13px;
+    padding:10px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;}
+  .order-picked .ph{color:var(--muted);font-size:13px;text-align:center;padding:8px;}
+  .order-step{display:flex;align-items:center;gap:10px;background:rgba(47,230,214,.1);
+    border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;line-height:1.5;}
+  .order-step .idx{width:23px;height:23px;flex:0 0 auto;border-radius:7px;background:var(--cyan);
+    color:#04222D;font-size:12.5px;font-weight:900;display:flex;align-items:center;justify-content:center;}
+  .order-pool{display:flex;flex-direction:column;gap:9px;}
+  .order-pool .order-step{cursor:pointer;background:rgba(13,24,48,.8);border-color:rgba(138,160,196,.25);}
+  .order-pool .order-step:active{transform:scale(.98);}
+  .order-step.used{opacity:.3;pointer-events:none;}
+  .order-tip{font-size:12.5px;color:var(--orange);margin-top:10px;line-height:1.6;}
+
+  #result{padding:0;}
+  #result .rimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;}
+  #result .rshade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,13,27,.78),rgba(7,13,27,.9));}
+  .rbox{position:relative;z-index:2;flex:1;overflow-y:auto;padding:30px 24px calc(28px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;}
+  .rbox::-webkit-scrollbar{display:none;}
+  .grade-ring{align-self:center;width:138px;height:138px;border-radius:50%;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;margin-bottom:14px;position:relative;}
+  .grade-ring .g{font-size:58px;font-weight:900;line-height:1;}
+  .grade-ring .gl{font-size:12px;letter-spacing:2px;color:var(--muted);margin-top:5px;}
+  .ring-S{background:conic-gradient(var(--cyan) 0 100%,transparent 0);box-shadow:0 0 34px rgba(47,230,214,.6);}
+  .ring-A{background:conic-gradient(var(--green) 0 100%,transparent 0);box-shadow:0 0 34px rgba(55,224,155,.55);}
+  .ring-B{background:conic-gradient(var(--orange) 0 100%,transparent 0);box-shadow:0 0 34px rgba(255,180,84,.5);}
+  .ring-C{background:conic-gradient(var(--red) 0 100%,transparent 0);box-shadow:0 0 34px rgba(255,77,94,.5);}
+  .grade-ring .inner{position:absolute;inset:9px;border-radius:50%;background:#0A1428;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .r-title{text-align:center;font-size:22px;font-weight:900;margin-bottom:4px;}
+  .r-comment{text-align:center;font-size:13.5px;color:var(--muted);line-height:1.7;margin-bottom:18px;}
+  .r-stats{display:flex;gap:10px;margin-bottom:16px;}
+  .r-stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 8px;text-align:center;}
+  .r-stat .v{font-size:21px;font-weight:900;color:var(--cyan);}
+  .r-stat .l{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .badge-row{display:flex;justify-content:center;gap:14px;margin-bottom:18px;}
+  .badge{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .badge .b-ic{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:27px;background:rgba(255,77,94,.15);border:1px solid rgba(255,77,94,.5);
+    box-shadow:0 0 18px rgba(255,77,94,.35);}
+  .badge .b-ic.lock{background:rgba(138,160,196,.1);border-color:rgba(138,160,196,.3);box-shadow:none;filter:grayscale(1);}
+  .badge .b-nm{font-size:11.5px;color:var(--muted);}
+  .pledge{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 16px;margin-bottom:16px;}
+  .pledge .p-t{font-size:14px;font-weight:900;color:var(--red);margin-bottom:8px;}
+  .pledge p{font-size:13.5px;line-height:1.75;color:#C7D6F0;}
+  .author{background:rgba(47,230,214,.07);border:1px solid var(--line);border-radius:15px;
+    padding:14px 16px;margin-bottom:18px;}
+  .author .lab{font-size:12px;color:var(--cyan);font-weight:800;letter-spacing:1px;margin-bottom:7px;}
+  .author p{font-size:13.5px;line-height:1.8;}
+  .r-actions{display:flex;gap:11px;}
+  .r-actions .btn{flex:1;}
+
+  .modal{position:absolute;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+    background:rgba(4,8,18,.78);backdrop-filter:blur(5px);padding:30px;}
+  .modal.show{display:flex;}
+  .modal .m-card{width:100%;background:var(--bg2);border:1px solid rgba(255,77,94,.5);
+    border-radius:18px;padding:24px 20px;text-align:center;box-shadow:0 0 34px rgba(255,77,94,.35);}
+  .modal .m-ic{font-size:40px;}
+  .modal h3{font-size:20px;margin:10px 0 8px;color:var(--red);}
+  .modal p{font-size:13.5px;color:var(--muted);line-height:1.7;margin-bottom:18px;}
+  .modal .btn{width:100%;}
+</style>
+</head>
+<body>
+<div class="bg-fx"></div>
+<div class="stage">
+
+  <section class="screen active" id="cover">
+    <img class="cimg" src="https://aka.doubaocdn.com/s/9DgZA3Del2" alt="封面">
+    <div class="cshade"></div>
+    <div class="cbox">
+      <span class="tagline mono"><span class="dot"></span>CODE RED · 任务已下发</span>
+      <h1>防艾特工<br><span class="hl">红丝带行动</span></h1>
+      <p class="sub">潜入校园五大任务点，识破谣言、规避风险、正确处置<br>亲手终结这场“艾”的阴谋</p>
+      <button class="btn" id="startBtn">▶ 接受任务</button>
+    </div>
+  </section>
+
+  <section class="screen" id="briefing">
+    <div class="pad">
+      <div class="topbar"><span class="chip mono">BRIEFING</span><span class="chip">单人行动</span></div>
+      <div class="h2">任务简报</div>
+      <div class="brief-card">
+        <p class="lead">指挥官：邪恶的 HIV 病毒正伪装成各种“日常误会”，企图在校园里悄悄传播。它最狡猾的地方，是利用人们的<b style="color:var(--red)">无知和侥幸</b>。</p>
+        <p style="margin-top:9px">你将作为健康特工，依次巡查五个任务点，用你的判断和选择阻止它。记住——<b style="color:var(--cyan)">每个人，都是自己健康的第一责任人。</b></p>
+      </div>
+      <div class="rules">
+        <div class="rule"><div class="ic">❤️</div><div class="t">初始生命 <b>3 颗</b><br>答错损失 1 颗</div></div>
+        <div class="rule"><div class="ic">⚡</div><div class="t">答对 <b>+10 分</b><br>实时累计</div></div>
+        <div class="rule"><div class="ic">🏅</div><div class="t">通关评级<br><b>S / A / B / C</b></div></div>
+      </div>
+      <div class="mission-list" id="missionList"></div>
+      <button class="btn" id="goBtn">确认出发 →</button>
+    </div>
+  </section>
+
+  <section class="screen" id="game">
+    <div class="hud">
+      <div class="lv" id="hudLv">任务一<small id="hudName">谣言终端</small></div>
+      <div class="right">
+        <div class="lives" id="hudLives">❤️❤️❤️</div>
+        <div class="score mono"><span id="hudScore">0</span><small> 分</small></div>
+      </div>
+    </div>
+    <div class="hud-bar"><i id="hudBar" style="width:0%"></i></div>
+    <div class="level-body" id="levelBox"></div>
+  </section>
+
+  <section class="screen" id="result">
+    <img class="rimg" src="https://aka.doubaocdn.com/s/7PIqlnx1H0" alt="结算">
+    <div class="rshade"></div>
+    <div class="rbox" id="resultBox"></div>
+  </section>
+
+  <div class="modal" id="failModal">
+    <div class="m-card">
+      <div class="m-ic">💔</div>
+      <h3>任务失败</h3>
+      <p>生命值耗尽，行动暂时中止。<br>别灰心，复盘知识后再挑战一次，特工永不言败。</p>
+      <button class="btn red" id="retryBtn">↻ 重新开始</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var LEVELS = [
+  { name:"谣言终端", icon:"📡", desc:"病毒用谣言制造恐慌。请判断下列说法的真假，戳破它的伪装。", type:"boolean",
+    questions:[
+      {q:"蚊虫叮咬会传播艾滋病。", answer:false,
+        explain:"不会。HIV 在蚊虫体内无法存活和复制，蚊虫吸血时也不会把上一个人的血液注入人体。"},
+      {q:"和感染者握手、一起吃饭会被传染。", answer:false,
+        explain:"不会。握手、拥抱、共餐、咳嗽等日常接触都不传播，HIV 离开人体后很快失活。"},
+      {q:"共用被污染的注射器可能感染 HIV。", answer:true,
+        explain:"会。共用注射器可直接交换血液，属于血液传播，是高危行为。"},
+      {q:"感染了 HIV，从外表一定能看得出来。", answer:false,
+        explain:"看不出来。感染者可能长期没有明显症状，外表与常人无异却有传染性，只能靠检测确认。"}
+    ]},
+  { name:"风险雷达", icon:"🛰️", desc:"扫描校园场景，识别哪些行为有感染风险。", type:"risk",
+    questions:[
+      {q:"与他人发生无保护性行为。", risk:"high",
+        explain:"高风险。性接触是艾滋病最主要的传播途径，正确使用安全套是关键防护。"},
+      {q:"在正规医院拔牙，使用一次性或严格消毒的器械。", risk:"safe",
+        explain:"安全。正规机构规范操作、器械严格消毒，不会因此感染。"},
+      {q:"与他人共用注射器吸毒。", risk:"high",
+        explain:"高风险。共用针具会造成血液交换，属于血液传播，要坚决拒绝、远离毒品。"},
+      {q:"和同学共用马桶、泳池，一起运动出汗。", risk:"safe",
+        explain:"安全。这些日常接触都不会传播 HIV，不必恐慌。"}
+    ]},
+  { name:"深夜抉择", icon:"🌃", desc:"真实情景中，你的每个选择都决定结局。", type:"scenario",
+    scene:"周末聚会，同学小林和心仪对象互生好感，夜色渐深、气氛升温，到了需要做决定的时刻——",
+    questions:[
+      {q:"关键时刻，小林应该怎么做？",
+        options:[
+          {t:"坚持正确使用安全套，做好防护。", ok:true,
+           fb:"正确。安全套是预防性接触传播最有效的手段之一，是对自己和对方负责。"},
+          {t:"觉得就一次没关系，心存侥幸不防护。", ok:false,
+           fb:"错误。风险不会因为“就这一次”而消失，一次无保护行为也可能造成暴露。"}
+        ]},
+      {q:"万一已经发生了高危暴露，接下来该怎么办？",
+        options:[
+          {t:"72 小时内尽快到正规医院或疾控，遵医嘱处理。", ok:true,
+           fb:"正确。抓住黄金时间，由专业人员评估并指导后续处置。"},
+          {t:"自己上网随便买药，或拖延观望。", ok:false,
+           fb:"错误。阻断药不能自行购买服用，拖延还可能错过 72 小时黄金时间。"}
+        ]}
+    ]},
+  { name:"黄金 72 小时", icon:"⏱️", desc:"暴露后的处置环环相扣，请按正确顺序点击步骤。", type:"order",
+    steps:[
+      "保持冷静，立即停止风险行为",
+      "72 小时内（最好 24 小时内）前往正规医院或疾控",
+      "医生评估后规范服用阻断药",
+      "遵医嘱连续服药 28 天，按时复查"
+    ],
+    tip:"阻断药必须在医生指导下使用，不可自行购买服用；越早处理，效果越好。"},
+  { name:"检测任务", icon:"🔬", desc:"检测是确认健康状况的唯一方式，看看你对它了解多少。", type:"quiz",
+    questions:[
+      {q:"想免费、保密，还能匿名咨询检测，首选去哪里？",
+        options:["疾控中心","路边无证小店","网上随便找人"], answer:0,
+        explain:"疾控中心免费、保密、专业，可匿名咨询；正规医院也可做检测。"},
+      {q:"使用四代检测试剂，通常多久后可以检出？",
+        options:["当场立刻就能","通常 2 至 3 周","要等十年以上"], answer:1,
+        explain:"四代试剂通常 2 至 3 周可检出，存在窗口期，需按医嘱复查确认。"},
+      {q:"自我检测试剂结果可疑时，应该怎么办？",
+        options:["不当回事","到正规医院或疾控及时复核","自己吓自己"], answer:1,
+        explain:"自检结果可疑要尽快到正规医院或疾控复核，以专业检测结果为准。"}
+    ]},
+  { name:"终极问答", icon:"👾", desc:"病毒 Boss 现身，用全部知识完成最后一击！", type:"boss",
+    questions:[
+      {q:"艾滋病的三大传播途径是什么？",
+        options:["性接触、血液、母婴","握手、共餐、蚊虫叮咬","空气、水源、食物"], answer:0,
+        explain:"三大途径是性接触、血液、母婴，其中性接触是最主要的途径。"},
+      {q:"母婴传播可以通过及时的医学干预大幅降低吗？",
+        options:["可以","完全没办法","一定会传播"], answer:0,
+        explain:"可以。怀孕、分娩、哺乳期间及时规范干预，能大幅降低母婴传播风险。"},
+      {q:"红丝带主要象征着什么？",
+        options:["对感染者的关心、支持与尊重","对感染者的排斥","一种时尚装饰"], answer:0,
+        explain:"红丝带象征对感染者的关心、支持和对生命的热爱。"},
+      {q:"面对感染者，正确的态度是？",
+        options:["平等对待，日常相处零风险","必须隔离","拒绝任何接触"], answer:0,
+        explain:"日常相处零风险，应平等对待感染者。知艾是为了防艾，防艾不妨爱。"}
+    ]}
+];
+
+var state = {level:0, q:0, score:0, lives:3, correct:0, total:0, order:[]};
+var $ = function(id){return document.getElementById(id);};
+var box = $("levelBox");
+
+(function(){
+  var html="";
+  LEVELS.forEach(function(l,i){
+    html += '<div class="mission"><span class="n">'+(i+1)+'</span><span class="nm">'+l.icon+' '+l.name+
+            '<small>'+l.desc+'</small></span></div>';
+  });
+  $("missionList").innerHTML = html;
+})();
+
+function show(id){
+  document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");});
+  $(id).classList.add("active");
+}
+
+function updateHud(){
+  var lv = LEVELS[state.level];
+  $("hudLv").innerHTML = "任务"+(state.level+1)+'<small id="hudName">'+lv.name+"</small>";
+  $("hudScore").textContent = state.score;
+  var hearts="";
+  for(var i=0;i<3;i++){ hearts += i<state.lives ? "❤️" : "🖤"; }
+  $("hudLives").textContent = hearts;
+  var done = state.level + (state.q / Math.max(1, countUnits(LEVELS[state.level])));
+  $("hudBar").style.width = Math.min(100,(done/LEVELS.length)*100)+"%";
+}
+function countUnits(lv){
+  if(lv.type==="order") return 1;
+  return lv.questions.length;
+}
+
+function renderLevel(){
+  var lv = LEVELS[state.level];
+  updateHud();
+  if(lv.type==="boolean") renderBoolean(lv);
+  else if(lv.type==="risk") renderRisk(lv);
+  else if(lv.type=="scenario") renderScenario(lv);
+  else if(lv.type==="order") renderOrder(lv);
+  else renderQuiz(lv);
+  box.scrollTop = 0;
+}
+
+function headHtml(lv){
+  return '<div class="level-title">'+lv.icon+' '+lv.name+'</div><div class="level-desc">'+lv.desc+'</div>';
+}
+
+function renderBoolean(lv){
+  var item = lv.questions[state.q];
+  box.innerHTML = headHtml(lv)+
+    '<div class="qcard"><div class="q"><span class="qn mono">'+(state.q+1)+'/'+lv.questions.length+'</span>'+item.q+'</div>'+
+    '<div class="dual">'+
+      '<button class="opt" data-v="true"><span class="big">✅</span>是真的</button>'+
+      '<button class="opt" data-v="false"><span class="big">🚫</span>是假的</button>'+
+    '</div></div>'+
+    '<div class="feedback" id="fb"><div class="ft" id="fbT"></div><div class="fx" id="fbX"></div></div>'+
+    '<div class="next-wrap" id="nw"></div>';
+  box.querySelectorAll(".opt").forEach(function(b){
+    b.onclick=function(){
+      var chosen = b.dataset.v==="true";
+      judge(chosen===item.answer, item.explain, b);
+    };
+  });
+}
+
+function renderRisk(lv){
+  var item = lv.questions[state.q];
+  box.innerHTML = headHtml(lv)+
+    '<div class="qcard"><div class="q"><span class="qn mono">'+(state.q+1)+'/'+lv.questions.length+'</span>'+item.q+'</div>'+
+    '<div class="dual">'+
+      '<button class="opt" data-v="high"><span class="big">⚠️</span>高风险</button>'+
+      '<button class="opt" data-v="safe"><span class="big">🛡️</span>安全</button>'+
+    '</div></div>'+
+    '<div class="feedback" id="fb"><div class="ft" id="fbT"></div><div class="fx" id="fbX"></div></div>'+
+    '<div class="next-wrap" id="nw"></div>';
+  box.querySelectorAll(".opt").forEach(function(b){
+    b.onclick=function(){ judge(b.dataset.v===item.risk, item.explain, b); };
+  });
+}
+
+function renderScenario(lv){
+  var item = lv.questions[state.q];
+  var opts = item.options.map(function(o,i){
+    return '<button class="opt" data-i="'+i+'"><span class="key">'+(i+1)+'</span>'+o.t+'</button>';
+  }).join("");
+  box.innerHTML = headHtml(lv)+
+    '<div class="scene">🎬 '+lv.scene+'</div>'+
+    '<div class="qcard"><div class="q"><span class="qn mono">'+(state.q+1)+'/'+lv.questions.length+'</span>'+item.q+'</div>'+
+    '<div class="opts">'+opts+'</div></div>'+
+    '<div class="feedback" id="fb"><div class="ft" id="fbT"></div><div class="fx" id="fbX"></div></div>'+
+    '<div class="next-wrap" id="nw"></div>';
+  box.querySelectorAll(".opt").forEach(function(b){
+    b.onclick=function(){
+      var o = item.options[+b.dataset.i];
+      judge(o.ok, o.fb, b);
+    };
+  });
+}
+
+function renderQuiz(lv){
+  var item = lv.questions[state.q];
+  var keys=["A","B","C","D"];
+  var opts = item.options.map(function(o,i){
+    return '<button class="opt" data-i="'+i+'"><span class="key">'+keys[i]+'</span>'+o+'</button>';
+  }).join("");
+  box.innerHTML = headHtml(lv)+
+    '<div class="qcard"><div class="q"><span class="qn mono">'+(state.q+1)+'/'+lv.questions.length+'</span>'+item.q+'</div>'+
+    '<div class="opts">'+opts+'</div></div>'+
+    '<div class="feedback" id="fb"><div class="ft" id="fbT"></div><div class="fx" id="fbX"></div></div>'+
+    '<div class="next-wrap" id="nw"></div>';
+  box.querySelectorAll(".opt").forEach(function(b){
+    b.onclick=function(){
+      var chosen = +b.dataset.i;
+      if(chosen===item.answer){ judge(true, item.explain, b); }
+      else{
+        b.classList.add("wrong");
+        box.querySelectorAll(".opt")[item.answer].classList.add("correct");
+        judge(false, item.explain, b);
+      }
+    };
+  });
+}
+
+function renderOrder(lv){
+  state.order = [];
+  var idxs = lv.steps.map(function(s,i){return i;});
+  idxs.sort(function(a,b){ return ((a*13+5)%7)-((b*13+5)%7); });
+  var poolHtml = idxs.map(function(orig,i){
+    return '<div class="order-step" data-orig="'+orig+'" id="pool-'+i+'">'+lv.steps[orig]+'</div>';
+  }).join("");
+  box.innerHTML = headHtml(lv)+
+    '<div class="order-picked" id="picked"><span class="ph">按正确顺序点选下方步骤，会显示在这里</span></div>'+
+    '<div class="order-pool" id="pool">'+poolHtml+'</div>'+
+    '<div class="order-tip">💡 '+lv.tip+'</div>'+
+    '<div class="feedback" id="fb"><div class="ft" id="fbT"></div><div class="fx" id="fbX"></div></div>'+
+    '<div class="next-wrap" id="nw"></div>';
+  box.querySelectorAll("#pool .order-step").forEach(function(el){
+    el.onclick=function(){
+      var orig = +el.dataset.orig;
+      var pos = state.order.length;
+      if(orig !== pos){
+        el.style.borderColor="var(--red)";
+        flashOrderWrong();
+        return;
+      }
+      state.order.push(orig);
+      el.classList.add("used");
+      renderPicked(lv);
+      if(state.order.length===lv.steps.length){ finishOrder(lv); }
+    };
+  });
+}
+function renderPicked(lv){
+  var picked = $("picked");
+  picked.innerHTML = state.order.map(function(orig,i){
+    return '<div class="order-step"><span class="idx">'+(i+1)+'</span>'+lv.steps[orig]+'</div>';
+  }).join("");
+}
+function flashOrderWrong(){
+  var fb=$("fb");
+  fb.className="feedback no show";
+  $("fbT").textContent="❌ 顺序不对，再想想";
+  $("fbX").innerHTML="处置步骤有先后，<b>请重新从第一步开始点选。</b>";
+  var lv=LEVELS[state.level];
+  state.order=[];
+  box.querySelectorAll("#pool .order-step").forEach(function(el){el.classList.remove("used");el.style.borderColor="";});
+  $("picked").innerHTML='<span class="ph">按正确顺序点选下方步骤，会显示在这里</span>';
+}
+function finishOrder(lv){
+  state.score += 20; state.correct += 2; state.total += 2;
+  var fb=$("fb");
+  fb.className="feedback ok show";
+  $("fbT").textContent="🎉 步骤完全正确，+20 分";
+  $("fbX").innerHTML="暴露后处置要诀：<b>越早越好、72 小时为限、医生指导、连服 28 天并复查。</b>";
+  $("nw").innerHTML='<button class="btn" id="nextBtn">继续 →</button>';
+  updateHud();
+  $("nextBtn").onclick=goNext;
+}
+
+function judge(ok, explain, btn){
+  state.total += 1;
+  var fb=$("fb");
+  box.querySelectorAll(".opt").forEach(function(b){b.style.pointerEvents="none";});
+  if(ok){
+    state.score += 10; state.correct += 1;
+    if(btn) btn.classList.add("correct");
+    fb.className="feedback ok show";
+    $("fbT").textContent="✔ 判断正确，+10 分";
+  }else{
+    state.lives -= 1;
+    if(btn) btn.classList.add("wrong");
+    fb.className="feedback no show";
+    $("fbT").textContent="✘ 判断有误，−1 生命";
+    box.querySelectorAll(".opt").forEach(function(b){b.classList.add("dim");});
+    if(btn) btn.classList.remove("dim");
+  }
+  $("fbX").textContent=explain;
+  updateHud();
+  if(state.lives<=0){
+    $("failModal").classList.add("show");
+    return;
+  }
+  $("nw").innerHTML='<button class="btn" id="nextBtn">继续 →</button>';
+  $("nextBtn").onclick=goNext;
+}
+
+function goNext(){
+  var lv=LEVELS[state.level];
+  if(lv.type==="order"){
+    state.level++; state.q=0;
+    if(state.level>=LEVELS.length){ showResult(); return; }
+    renderLevel(); return;
+  }
+  state.q++;
+  if(state.q>=lv.questions.length){
+    state.level++; state.q=0;
+    if(state.level>=LEVELS.length){ showResult(); return; }
+  }
+  renderLevel();
+}
+
+function showResult(){
+  var ratio = state.correct/state.total;
+  var grade, ring, comment;
+  if(ratio>=0.95){ grade="S"; ring="ring-S"; comment="完美行动！你已全面掌握防艾技能，是当之无愧的红丝带王牌特工。"; }
+  else if(ratio>=0.85){ grade="A"; ring="ring-A"; comment="表现出色，关键知识都已掌握，再细心一点就能达到满分。"; }
+  else if(ratio>=0.7){ grade="B"; ring="ring-B"; comment="行动成功，基础扎实，个别知识点还可以再巩固。"; }
+  else { grade="C"; ring="ring-C"; comment="任务虽完成但有些惊险，建议回看解析、重新挑战一次。"; }
+
+  var badges = [
+    {ic:"🎗️", nm:"红丝带卫士", got:true},
+    {ic:"🛡️", nm:"风险猎手", got:ratio>=0.7},
+    {ic:"🏅", nm:"王牌特工", got:grade==="S"}
+  ];
+  var badgeHtml = badges.map(function(b){
+    return '<div class="badge"><div class="b-ic'+(b.got?'':' lock')+'">'+(b.got?b.ic:'🔒')+'</div><div class="b-nm">'+b.nm+'</div></div>';
+  }).join("");
+
+  $("resultBox").innerHTML =
+    '<div class="grade-ring '+ring+'"><div class="inner"><div class="g">'+grade+'</div><div class="gl">RANK</div></div></div>'+
+    '<div class="r-title">行动完成 · 评级 '+grade+'</div>'+
+    '<div class="r-comment">'+comment+'</div>'+
+    '<div class="r-stats">'+
+      '<div class="r-stat"><div class="v">'+state.score+'</div><div class="l">总得分</div></div>'+
+      '<div class="r-stat"><div class="v">'+state.correct+'/'+state.total+'</div><div class="l">正确判断</div></div>'+
+      '<div class="r-stat"><div class="v">'+state.lives+'</div><div class="l">剩余生命</div></div>'+
+    '</div>'+
+    '<div class="badge-row">'+badgeHtml+'</div>'+
+    '<div class="pledge"><div class="p-t">🎗️ 红丝带承诺</div>'+
+      '<p>我愿做自己健康的第一责任人，科学预防、主动检测；也愿平等对待每一位感染者——知艾是为了防艾，<b style="color:var(--red)">防艾不妨爱</b>。</p></div>'+
+    '<div class="author"><div class="lab">作者信息 · AGENT</div>'+
+      '<p>曹建峰　化材院<br>23 级材料化学专业 3 班<br>学号 202340590304<br>电话 17870520537</p></div>'+
+    '<div class="r-actions"><button class="btn ghost" id="againBtn">↻ 再玩一次</button></div>';
+  show("result");
+  $("againBtn").onclick=function(){ resetGame(); show("cover"); };
+}
+
+function resetGame(){
+  state={level:0,q:0,score:0,lives:3,correct:0,total:0,order:[]};
+  $("failModal").classList.remove("show");
+}
+$("startBtn").onclick=function(){ show("briefing"); };
+$("goBtn").onclick=function(){ resetGame(); renderLevel(); show("game"); };
+$("retryBtn").onclick=function(){ resetGame(); renderLevel(); show("game"); };
+</script>
+</body>
+</html>
